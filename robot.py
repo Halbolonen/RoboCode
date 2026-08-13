@@ -1,10 +1,51 @@
-from sbot import motors, utils
+from sbot import motors, arduino, utils, AnalogPin, vision
 
-while True:
-    # 1 is left 0 is right
-    motors.set_power(0, 0.5)
-    motors.set_power(1, 0.475)
-    utils.sleep(5)
-    motors.set_power(0,0)
-    motors.set_power(1,0)
-    utils.sleep(5)
+def set_motors(left,right): 
+    motors.set_power(0,left) 
+    motors.set_power(1,right)  
+
+def turn_left(speed):
+    set_motors(-speed, speed)
+    
+def turn_right(speed):
+    turn_left(-speed)
+    
+def line_follow_turn_left(speed):
+    set_motors(speed, speed * 1.5)
+    
+def line_follow_turn_right(speed):
+    set_motors(speed * 1.5, speed)
+
+def sharp_lf_turn_right(speed):
+    set_motors(speed, 0)
+
+def sharp_lf_turn_left(speed):
+    set_motors(0, speed)
+    
+def get_front_ultrasound_distance():
+    return arduino.measure_ultrasound_distance(2,3)
+
+robo_speed = 0.2
+
+def set_state(state): 
+    match state:
+        case "forward":
+            set_motors(robo_speed,robo_speed) 
+        case "left":
+            line_follow_turn_left(robo_speed)
+        case "right":
+            line_follow_turn_right(robo_speed)
+        case "corner_left":
+            sharp_lf_turn_left(robo_speed)
+        case "corner_right":
+            sharp_lf_turn_right(robo_speed)
+
+    current_state = ""
+
+    while True:
+        left_IR = arduino.analog_read(AnalogPin.A0)
+
+        if (left_IR > 0.1):
+            set_motors(0.2,-0.2)
+        else:
+            set_motors(0,0)
